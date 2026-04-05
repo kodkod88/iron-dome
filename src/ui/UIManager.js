@@ -4,6 +4,7 @@
  * All elements are Phaser objects composited on the canvas (no DOM manipulation).
  */
 import Phaser from 'phaser';
+import { createButton } from './UIButtonFactory.js';
 
 const BAR_WIDTH = 150;
 const BAR_HEIGHT = 14;
@@ -13,12 +14,12 @@ export class UIManager {
    * @param {Phaser.Scene} scene
    */
   constructor(scene) {
-    this._scene           = scene;
-    this._startContainer  = null;
+    this._scene             = scene;
+    this._startContainer    = null;
     this._gameOverContainer = null;
-    this._healthBarGfx    = null;
-    this._pauseContainer  = null;
-    this._pauseCallback   = null;
+    this._healthBarGfx      = null;
+    this._pauseContainer    = null;
+    this._pauseCallback     = null;
 
     this._createHUD();
   }
@@ -29,25 +30,17 @@ export class UIManager {
     const s = this._scene;
     const style = { fontSize: '16px', fill: '#ffffff', fontFamily: 'monospace' };
 
-    this._scoreText = s.add.text(16, 16, 'SCORE: 0', style).setScrollFactor(0).setDepth(10);
-    this._levelText = s.add.text(400, 16, 'LEVEL 1', style).setOrigin(0.5, 0).setScrollFactor(0).setDepth(10);
-    this._healthLabel = s.add.text(784, 16, 'HEALTH', style).setOrigin(1, 0).setScrollFactor(0).setDepth(10);
-    this._healthValue = s.add.text(784, 34, '100', style).setOrigin(1, 0).setScrollFactor(0).setDepth(10);
+    this._scoreText  = s.add.text(16,  16, 'SCORE: 0', style).setScrollFactor(0).setDepth(10);
+    this._levelText  = s.add.text(400, 16, 'LEVEL 1',  style).setOrigin(0.5, 0).setScrollFactor(0).setDepth(10);
+    this._healthLabel = s.add.text(784, 16, 'HEALTH',  style).setOrigin(1, 0).setScrollFactor(0).setDepth(10);
+    this._healthValue = s.add.text(784, 34, '100',     style).setOrigin(1, 0).setScrollFactor(0).setDepth(10);
 
     this._healthBarGfx = s.add.graphics().setScrollFactor(0).setDepth(10);
     this._drawHealthBar(1);
 
     // Pause button — hidden until gameplay starts
-    this._pauseBtn = s.add.text(400, 38, '\u275a\u275a PAUSE', {
-      fontSize: '13px', fill: '#aaaaaa', fontFamily: 'monospace',
-      backgroundColor: '#222222', padding: { x: 8, y: 4 },
-    }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(10)
-      .setInteractive({ useHandCursor: true })
-      .setVisible(false);
-
-    this._pauseBtn.on('pointerover', () => this._pauseBtn.setStyle({ fill: '#ffffff' }));
-    this._pauseBtn.on('pointerout',  () => this._pauseBtn.setStyle({ fill: '#aaaaaa' }));
-    this._pauseBtn.on('pointerdown', () => this._pauseCallback?.());
+    this._pauseBtn = createButton(s, '\u275a\u275a PAUSE', 400, 60, () => this._pauseCallback?.());
+    this._pauseBtn.setScrollFactor(0).setDepth(10).setVisible(false);
   }
 
   _drawHealthBar(percent) {
@@ -102,7 +95,7 @@ export class UIManager {
 
   /** Sync button label with current pause state. */
   updatePauseLabel(isPaused) {
-    this._pauseBtn.setText(isPaused ? '\u25b6 RESUME' : '\u275a\u275a PAUSE');
+    this._pauseBtn.label.setText(isPaused ? '\u25b6 RESUME' : '\u275a\u275a PAUSE');
   }
 
   showPauseOverlay(onResume, onRestart) {
@@ -121,36 +114,11 @@ export class UIManager {
       stroke: '#333333', strokeThickness: 5,
     }).setOrigin(0.5));
 
-    const resumeBg = s.add.graphics();
-    resumeBg.fillStyle(0x004488, 1);
-    resumeBg.fillRoundedRect(width / 2 - 110, height * 0.52, 220, 44, 8);
-    c.add(resumeBg);
-
-    const resumeBtn = s.add.text(width / 2, height * 0.52 + 22, 'RESUME  [ESC]', {
-      fontSize: '18px', fill: '#ffffff', fontFamily: 'monospace',
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    const resumeBtn = createButton(s, 'RESUME  [ESC]', width / 2, height * 0.52 + 22, onResume);
     c.add(resumeBtn);
 
-    resumeBtn.on('pointerover', () => resumeBtn.setStyle({ fill: '#00eeff' }));
-    resumeBtn.on('pointerout',  () => resumeBtn.setStyle({ fill: '#ffffff' }));
-    resumeBtn.on('pointerdown', () => onResume());
-
-    // ── RESTART button ──────────────────────────────────────────────────────
-    const restartBg = s.add.graphics();
-    restartBg.lineStyle(1, 0x00aa55, 0.7);
-    restartBg.strokeRoundedRect(width / 2 - 90, height * 0.62, 180, 40, 8);
-    restartBg.fillStyle(0x001a00, 0.7);
-    restartBg.fillRoundedRect(width / 2 - 90, height * 0.62, 180, 40, 8);
-    c.add(restartBg);
-
-    const restartBtn = s.add.text(width / 2, height * 0.62 + 20, 'RESTART  [R]', {
-      fontSize: '16px', fill: '#44cc77', fontFamily: 'monospace',
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    const restartBtn = createButton(s, 'RESTART  [R]', width / 2, height * 0.62 + 22, () => onRestart?.());
     c.add(restartBtn);
-
-    restartBtn.on('pointerover', () => restartBtn.setStyle({ fill: '#aaffcc' }));
-    restartBtn.on('pointerout',  () => restartBtn.setStyle({ fill: '#44cc77' }));
-    restartBtn.on('pointerdown', () => onRestart?.());
 
     this._pauseContainer = c;
   }
@@ -196,25 +164,11 @@ export class UIManager {
     }).setOrigin(0.5);
     container.add(subtitle);
 
-    // Start button
-    const btnBg = s.add.graphics();
-    btnBg.fillStyle(0x004488, 1);
-    btnBg.fillRoundedRect(width / 2 - 100, height * 0.62, 200, 48, 8);
-    container.add(btnBg);
-
-    const btnText = s.add.text(width / 2, height * 0.62 + 24, 'START GAME', {
-      fontSize: '20px',
-      fill: '#ffffff',
-      fontFamily: 'monospace',
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    container.add(btnText);
-
-    btnText.on('pointerover', () => btnText.setStyle({ fill: '#00eeff' }));
-    btnText.on('pointerout', () => btnText.setStyle({ fill: '#ffffff' }));
-    btnText.once('pointerdown', () => {
+    const startBtn = createButton(s, 'START GAME', width / 2, height * 0.62 + 22, () => {
       container.destroy();
       onStart();
     });
+    container.add(startBtn);
 
     this._startContainer = container;
   }
@@ -260,25 +214,12 @@ export class UIManager {
     }).setOrigin(0.5);
     container.add(scoreText);
 
-    const btnBg = s.add.graphics();
-    btnBg.fillStyle(0x004488, 1);
-    btnBg.fillRoundedRect(width / 2 - 100, height * 0.6, 200, 48, 8);
-    container.add(btnBg);
-
-    const btnText = s.add.text(width / 2, height * 0.6 + 24, 'PLAY AGAIN', {
-      fontSize: '20px',
-      fill: '#ffffff',
-      fontFamily: 'monospace',
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    container.add(btnText);
-
-    btnText.on('pointerover', () => btnText.setStyle({ fill: '#00eeff' }));
-    btnText.on('pointerout', () => btnText.setStyle({ fill: '#ffffff' }));
-    btnText.once('pointerdown', () => {
+    const playAgainBtn = createButton(s, 'PLAY AGAIN', width / 2, height * 0.6 + 22, () => {
       container.destroy();
       this._gameOverContainer = null;
       onRestart();
     });
+    container.add(playAgainBtn);
 
     this._gameOverContainer = container;
   }
